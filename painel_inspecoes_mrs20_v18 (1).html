@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAINEL DE INSPEÇÕES - MRS20</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #090d16;
+            --bg-card: #151c2c;
+            --bg-card-hover: #1e293b;
+            --text-main: #ffffff;
+            --text-muted: #cbd5e1;
+            
+            --accent-blue: #00d2ff;
+            --accent-green: #00e676;
+            --accent-purple: #d500f9;
+            --accent-amber: #ffab00;
+            --accent-red: #ff1744;
+            --accent-orange: #ff6d00;
+            --border-color: #2a374e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-primary); color: var(--text-main); padding: 24px; min-height: 100vh; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--accent-blue);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header h1 { font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase; }
+        .header h1 span { color: var(--accent-blue); }
+
+        .action-btns {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .btn-action {
+            border: 2px solid var(--accent-blue);
+            color: #ffffff;
+            background-color: rgba(0, 210, 255, 0.15);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-action:hover { background-color: var(--accent-blue); color: #000000; font-weight: 800; }
+        .btn-save {
+            border-color: var(--accent-green);
+            background-color: rgba(0, 230, 118, 0.15);
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.2);
+        }
+        .btn-save:hover { background-color: var(--accent-green); color: #000000; font-weight: 800; }
+        
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+
+        .links-section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .link-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text-main);
+            position: relative;
+            overflow: hidden;
+        }
+        .link-card:hover {
+            transform: translateY(-3px);
+            background-color: var(--bg-card-hover);
+            box-shadow: 0 6px 16px rgba(0, 210, 255, 0.25);
+            border-color: var(--accent-blue);
+        }
+        .link-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+        .link-card.portal::before { background-color: var(--accent-blue); }
+        .link-card.drive::before { background-color: var(--accent-green); }
+        .link-card.form::before { background-color: var(--accent-purple); }
+
+        .link-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .link-icon { font-size: 24px; }
+        .link-title { font-size: 14px; font-weight: 700; color: #ffffff; }
+        .link-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4; }
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: #ffffff;
+            transition: all 0.2s;
+        }
+        .link-card:hover .link-btn { background-color: var(--accent-blue); color: #000000; border-color: var(--accent-blue); }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .kpi-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .kpi-card.blue { border-left: 5px solid var(--accent-blue); }
+        .kpi-card.green { border-left: 5px solid var(--accent-green); }
+        .kpi-card.red { border-left: 5px solid var(--accent-red); }
+        .kpi-card.purple { border-left: 5px solid var(--accent-purple); }
+
+        .kpi-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 30px; font-weight: 800; margin-top: 6px; color: #ffffff; }
+        .kpi-subtext { font-size: 12px; color: var(--accent-blue); margin-top: 4px; font-weight: 600; }
+
+        .alert-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .alert-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+        }
+        .alert-card.aloj { border-top: 4px solid var(--accent-orange); }
+        .alert-card.veic { border-top: 4px solid var(--accent-red); }
+        .alert-card.frente { border-top: 4px solid var(--accent-purple); }
+
+        .alert-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .alert-card-title { font-size: 14px; font-weight: 800; color: #ffffff; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+        .alert-count-badge {
+            background-color: rgba(255, 23, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .alert-list-wrapper {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0d1322;
+        }
+        .alert-list-wrapper table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .alert-list-wrapper th { background-color: #0b111e; color: var(--accent-blue); padding: 8px; position: sticky; top: 0; font-weight: 700; text-transform: uppercase; font-size: 10px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .alert-list-wrapper td { padding: 8px; border-bottom: 1px solid var(--border-color); color: #ffffff; }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        
+        .chart-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            height: 340px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-title { font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; text-transform: uppercase; flex-shrink: 0; }
+        
+        .farol-container-small { display: flex; gap: 12px; align-items: center; height: 100%; }
+        .chart-container-donut-small { position: relative; height: 100%; width: 35%; flex-shrink: 0; }
+        .chart-container-bar { position: relative; height: 100%; width: 100%; }
+        
+        .farol-container-full { display: flex; height: 100%; width: 100%; }
+
+        .farol-list-wrapper-small {
+            width: 65%;
+            height: 100%;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0d1322;
+        }
+        .farol-list-wrapper-full {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0d1322;
+        }
+
+        .farol-list-wrapper-small table, .farol-list-wrapper-full table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .farol-list-wrapper-small th, .farol-list-wrapper-full th { background-color: #0b111e; color: var(--accent-blue); padding: 8px 10px; position: sticky; top: 0; font-weight: 700; text-transform: uppercase; font-size: 10px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .farol-list-wrapper-small td, .farol-list-wrapper-full td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); color: #ffffff; }
+
+        .table-section {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); margin-bottom: 16px; padding-bottom: 8px; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); font-size: 13px; font-weight: 700; padding: 8px 16px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+        .tab-btn.active { background-color: var(--accent-blue); color: #000000; font-weight: 800; }
+        .table-wrapper { overflow-x: auto; max-height: 420px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background-color: #0b111e; color: var(--accent-blue); padding: 12px; position: sticky; top: 0; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid var(--border-color); }
+        td { padding: 12px; border-bottom: 1px solid var(--border-color); color: #ffffff; }
+        tr:hover { background-color: rgba(255, 255, 255, 0.03); }
+
+        .badge-status { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
+        .status-ok { background-color: rgba(0, 230, 118, 0.25); color: #00e676; border: 1px solid #00e676; }
+        .status-atrasado { background-color: rgba(255, 23, 68, 0.25); color: #ff1744; border: 1px solid #ff1744; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>PAINEL DE INSPEÇÕES - <span>MRS20</span></h1>
+        <div class="action-btns">
+            <div class="upload-btn-wrapper">
+                <button class="btn-action">📥 Importar Excel (.xlsx)</button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
+            </div>
+            <button class="btn-action btn-save" onclick="saveCurrentStateHTML()">💾 Salvar e Baixar Nova Versão HTML</button>
+        </div>
+    </div>
+
+    <!-- SEÇÃO DE LINKS ÚTEIS -->
+    <div class="links-section">
+        <div class="section-title">🔗 Links Úteis e Sistemas Integrados</div>
+        <div class="links-grid">
+            <a href="https://portal-inspecao-sst.vercel.app/" target="_blank" rel="noopener noreferrer" class="link-card portal">
+                <div>
+                    <div class="link-card-header">
+                        <span class="link-icon">🌐</span>
+                        <div class="link-title">Portal Inspeção SST</div>
+                    </div>
+                    <div class="link-desc">Acesse a plataforma web do Portal de Inspeções SST para gerenciamento completo.</div>
+                </div>
+                <div class="link-btn">Acessar Portal ↗</div>
+            </a>
+
+            <a href="https://drive.google.com/drive/folders/1vojmNysBidjCy9aZghOT0EudtaFGA9k3?usp=drive_link" target="_blank" rel="noopener noreferrer" class="link-card drive">
+                <div>
+                    <div class="link-card-header">
+                        <span class="link-icon">📁</span>
+                        <div class="link-title">Drive de Documentos &amp; Fotos</div>
+                    </div>
+                    <div class="link-desc">Pasta compartilhada do Google Drive contendo arquivos, evidências e relatórios das inspeções.</div>
+                </div>
+                <div class="link-btn">Acessar Drive ↗</div>
+            </a>
+
+            <a href="https://docs.google.com/forms/d/1SfT1LGHJ4BfxMl7RDvaz50Am4RB7dNXVvDVcV3ym7ng/edit?usp=drive_web&amp;ouid=114397208934535055773" target="_blank" rel="noopener noreferrer" class="link-card form">
+                <div>
+                    <div class="link-card-header">
+                        <span class="link-icon">📝</span>
+                        <div class="link-title">Solicitação de EPI</div>
+                    </div>
+                    <div class="link-desc">Formulário oficial do Google Forms para solicitação de EPI.</div>
+                </div>
+                <div class="link-btn">Abrir Formulário ↗</div>
+            </a>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card blue">
+            <div class="kpi-title">TOTAL DE INSPEÇÕES</div>
+            <div class="kpi-value" id="kpiTotal">69</div>
+            <div class="kpi-subtext" id="kpiMaxDate">Última data referência: 01/09/2026</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-title">INSPETORES NO PRAZO (TST)</div>
+            <div class="kpi-value" id="kpiInspEmDia">0</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-title">INSPETORES EM ATRASO (TST)</div>
+            <div class="kpi-value" id="kpiInspAtrasados">8</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-title">TOTAL DE INSPETORES (BASE)</div>
+            <div class="kpi-value" id="kpiTotalInspetoresBase">16</div>
+        </div>
+    </div>
+
+    <div class="alert-cards-grid">
+        <div class="alert-card aloj">
+            <div class="alert-card-header">
+                <div class="alert-card-title">⚠️ Alojamentos com Inspeção Atrasada</div>
+                <span class="alert-count-badge" id="countAlojAtrasados">5 pendente(s)</span>
+            </div>
+            <div class="alert-list-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Local / Alojamento</th>
+                            <th>Equipe / Descrição</th>
+                            <th>Última Insp.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listAlojAtrasados"><tr>
+                    <td><strong style="color: #ff6d00;">BRUMADINHO: Rua Maria E. Andrade 737 /1º</strong></td>
+                    <td>R101</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ff6d00;">BRUMADINHO: Rua Maria E. Andrade 737 /2º</strong></td>
+                    <td>R101</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ff6d00;">BRUMADINHO: Rua Maria E. Andrade 737 /3º</strong></td>
+                    <td>R101</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ff6d00;">BRUMADINHO: Rua Nilson S. Machado 187</strong></td>
+                    <td>R126</td>
+                    <td>24/08/2026</td>
+                    <td><span class="badge-status status-atrasado">8 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ff6d00;">SÃO B. SUAÇUI: Av Magalhães Pinto 473</strong></td>
+                    <td>R106</td>
+                    <td>17/08/2026</td>
+                    <td><span class="badge-status status-atrasado">15 dias</span></td>
+                </tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="alert-card veic">
+            <div class="alert-card-header">
+                <div class="alert-card-title">🚨 Veículos com Inspeção Atrasada</div>
+                <span class="alert-count-badge" id="countVeicAtrasados">19 pendente(s)</span>
+            </div>
+            <div class="alert-list-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Placa / ID</th>
+                            <th>Tipo / Descrição</th>
+                            <th>Última Insp.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listVeicAtrasados"><tr>
+                    <td><strong style="color: #00d2ff;">BZF9C56</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">LMP8H25</strong></td>
+                    <td>MUNCK</td>
+                    <td>11/08/2026</td>
+                    <td><span class="badge-status status-atrasado">21 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">RNO3G71</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SHZ6I55</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SIE6H69</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SIG2E84</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SIJ9A20</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SIM1G00</strong></td>
+                    <td>MICRO</td>
+                    <td>24/08/2026</td>
+                    <td><span class="badge-status status-atrasado">8 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SIS1H86</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SJH0B28</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>12/08/2026</td>
+                    <td><span class="badge-status status-atrasado">20 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SYE0A98</strong></td>
+                    <td>VAN</td>
+                    <td>21/08/2026</td>
+                    <td><span class="badge-status status-atrasado">11 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">SYI5F25</strong></td>
+                    <td>VAN</td>
+                    <td>10/08/2026</td>
+                    <td><span class="badge-status status-atrasado">22 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TDA3I81</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TDJ8H11</strong></td>
+                    <td>VAN</td>
+                    <td>21/08/2026</td>
+                    <td><span class="badge-status status-atrasado">11 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TDN4B51</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TDR2C27</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TYT8C11</strong></td>
+                    <td>VAN</td>
+                    <td>17/08/2026</td>
+                    <td><span class="badge-status status-atrasado">15 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TZM2F79</strong></td>
+                    <td>VERIFICAR</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #00d2ff;">TXZ1J91</strong></td>
+                    <td>TOCO</td>
+                    <td>18/08/2026</td>
+                    <td><span class="badge-status status-atrasado">14 dias</span></td>
+                </tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="alert-card frente">
+            <div class="alert-card-header">
+                <div class="alert-card-title">🚧 Frentes de Serviço com Inspeção Atrasada</div>
+                <span class="alert-count-badge" id="countFrenteAtrasados">10 pendente(s)</span>
+            </div>
+            <div class="alert-list-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Frente / ID</th>
+                            <th>Descrição</th>
+                            <th>Última Insp.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listFrenteAtrasados"><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R101</strong></td>
+                    <td>R101</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R102</strong></td>
+                    <td>R102</td>
+                    <td>20/06/2026</td>
+                    <td><span class="badge-status status-atrasado">73 dias</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R105</strong></td>
+                    <td>R105</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R106</strong></td>
+                    <td>R106</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R123</strong></td>
+                    <td>R123</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R124</strong></td>
+                    <td>R124</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R126</strong></td>
+                    <td>R126</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R127</strong></td>
+                    <td>R127</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R132</strong></td>
+                    <td>R132</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr><tr>
+                    <td><strong style="color: #d500f9;">EQUIPE R177</strong></td>
+                    <td>R177</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">Sem reg.</span></td>
+                </tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <!-- Farol TST - Veículos -->
+        <div class="chart-card">
+            <div class="chart-title">🚗 FAROL TST - VEÍCULOS</div>
+            <div class="farol-container-small">
+                <div class="chart-container-donut-small"><canvas id="chartFarolTSTVeic" style="box-sizing: border-box; display: block; height: 298px; width: 132.6px;" width="132" height="298"></canvas></div>
+                <div class="farol-list-wrapper-small">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Inspetor (TST)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listFarolTSTVeic"><tr><td><strong>RAPHAEL OLIVEIRA</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>LUCAS TADEU</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>LUIZ GUSTAVO</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>MELYRIK JOSE</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>WENDELL ARAUJO</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>GILIARD RAFAEL</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>GUSTAVO CRISTIANO</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>SAMUEL JOHNATAN</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Farol TST - Alojamentos -->
+        <div class="chart-card">
+            <div class="chart-title">🏠 FAROL TST - ALOJAMENTOS</div>
+            <div class="farol-container-small">
+                <div class="chart-container-donut-small"><canvas id="chartFarolTSTAloj" style="box-sizing: border-box; display: block; height: 298px; width: 132.6px;" width="132" height="298"></canvas></div>
+                <div class="farol-list-wrapper-small">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Inspetor (TST)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listFarolTSTAloj"><tr><td><strong>RAPHAEL OLIVEIRA</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>LUCAS TADEU</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>LUIZ GUSTAVO</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>MELYRIK JOSE</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>WENDELL ARAUJO</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>GILIARD RAFAEL</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>GUSTAVO CRISTIANO</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>SAMUEL JOHNATAN</strong></td><td><span class="badge-status status-ok">OK</span></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Farol TST - Frentes de Serviço -->
+        <div class="chart-card">
+            <div class="chart-title">🚧 FAROL TST - FRENTES DE SERVIÇO</div>
+            <div class="farol-container-small">
+                <div class="chart-container-donut-small"><canvas id="chartFarolTSTFrente" style="box-sizing: border-box; display: block; height: 298px; width: 132.6px;" width="132" height="298"></canvas></div>
+                <div class="farol-list-wrapper-small">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Inspetor (TST)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listFarolTSTFrente"><tr><td><strong>RAPHAEL OLIVEIRA</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>LUCAS TADEU</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>LUIZ GUSTAVO</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>MELYRIK JOSE</strong></td><td><span class="badge-status status-ok">OK</span></td></tr><tr><td><strong>WENDELL ARAUJO</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>GILIARD RAFAEL</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>GUSTAVO CRISTIANO</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr><tr><td><strong>SAMUEL JOHNATAN</strong></td><td><span class="badge-status status-atrasado">ATRASADO</span></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Farol Liderança -->
+        <div class="chart-card">
+            <div class="chart-title">👔 FAROL DE INSPEÇÕES LIDERANÇA</div>
+            <div class="farol-container-full">
+                <div class="farol-list-wrapper-full">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Inspetor (Liderança)</th>
+                                <th>Prazo</th>
+                                <th>Última Insp.</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listFarolLid"><tr>
+                    <td><strong>ALOISIO FREITAS</strong> <br><small style="color:var(--accent-blue);">COORD. SEGURANÇA</small></td>
+                    <td>15d</td>
+                    <td>01/09/2026</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong>RAPHAEL SILVA</strong> <br><small style="color:var(--accent-blue);">PREPOSTO</small></td>
+                    <td>30d</td>
+                    <td>26/08/2026</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong>FERNANDO WELTER</strong> <br><small style="color:var(--accent-blue);">PREPOSTO</small></td>
+                    <td>30d</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong>LUCAS FELIPE</strong> <br><small style="color:var(--accent-blue);">SUPERVISOR</small></td>
+                    <td>15d</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong>EDSON TAVARES</strong> <br><small style="color:var(--accent-blue);">SUPERVISOR</small></td>
+                    <td>15d</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong>ERNANE PINHEIRO</strong> <br><small style="color:var(--accent-blue);">ENG. SEGURANÇA</small></td>
+                    <td>60d</td>
+                    <td>09/06/2026</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong>RONALDO COSTA</strong> <br><small style="color:var(--accent-blue);">DIRETOR</small></td>
+                    <td>60d</td>
+                    <td>20/06/2026</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong>JORGE LUIS</strong> <br><small style="color:var(--accent-blue);">SUPERVISOR</small></td>
+                    <td>15d</td>
+                    <td>25/08/2026</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Alojamentos (Apenas TST) -->
+        <div class="chart-card">
+            <div class="chart-title">🏆 Ranking Alojamentos (TST)</div>
+            <div class="chart-container-bar"><canvas id="chartRankingAloj" style="box-sizing: border-box; display: block; height: 267px; width: 379px;" width="379" height="267"></canvas></div>
+        </div>
+
+        <!-- Ranking Veículos (Apenas TST) -->
+        <div class="chart-card">
+            <div class="chart-title">🏆 Ranking Veículos (TST)</div>
+            <div class="chart-container-bar"><canvas id="chartRankingVeic" style="box-sizing: border-box; display: block; height: 267px; width: 379px;" width="379" height="267"></canvas></div>
+        </div>
+
+        <!-- Ranking Frentes de Serviço (Apenas TST) -->
+        <div class="chart-card">
+            <div class="chart-title">🏆 Ranking Frentes de Serviço (TST)</div>
+            <div class="chart-container-bar"><canvas id="chartRankingFrente" style="box-sizing: border-box; display: block; height: 267px; width: 379px;" width="379" height="267"></canvas></div>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <div class="tabs">
+            <button class="tab-btn" onclick="switchTab(event, 'tabProd')">Produtividade &amp; Farol por Inspetor</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'tabIdLast')">Última Inspeção por ID</button>
+        </div>
+
+        <div id="tabProd" class="table-wrapper" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Inspetor</th><th>Função</th><th>Total Inspeções</th><th>Alojamentos</th><th>Veículos</th><th>Frentes de Serviço</th><th>Última Data</th><th>Dias p/ Última Data</th><th>Farol Prazo</th>
+                    </tr>
+                </thead>
+                <tbody id="tableProdBody"><tr>
+                    <td><strong style="color: #ffffff;">RAPHAEL OLIVEIRA</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">7</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">7</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">LUCAS TADEU</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">10</strong></td>
+                    <td><strong style="color: #ff6d00;">5</strong></td>
+                    <td><strong style="color: #00d2ff;">5</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">LUIZ GUSTAVO</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">6</strong></td>
+                    <td><strong style="color: #ff6d00;">4</strong></td>
+                    <td><strong style="color: #00d2ff;">2</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">MELYRIK JOSE</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">7</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">6</strong></td>
+                    <td><strong style="color: #d500f9;">1</strong></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">WENDELL ARAUJO</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">5</strong></td>
+                    <td><strong style="color: #ff6d00;">2</strong></td>
+                    <td><strong style="color: #00d2ff;">3</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">GILIARD RAFAEL</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">4</strong></td>
+                    <td><strong style="color: #ff6d00;">3</strong></td>
+                    <td><strong style="color: #00d2ff;">1</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>14/08/2026</td>
+                    <td>18 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">GUSTAVO CRISTIANO</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">4</strong></td>
+                    <td><strong style="color: #ff6d00;">2</strong></td>
+                    <td><strong style="color: #00d2ff;">2</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">SAMUEL JOHNATAN</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">TST</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">8</strong></td>
+                    <td><strong style="color: #ff6d00;">8</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">ALOISIO FREITAS</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">COORD. SEGURANÇA</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">2</strong></td>
+                    <td><strong style="color: #ff6d00;">1</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">1</strong></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">RAPHAEL SILVA</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">PREPOSTO</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">1</strong></td>
+                    <td><strong style="color: #ff6d00;">1</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>26/08/2026</td>
+                    <td>6 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">FERNANDO WELTER</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">PREPOSTO</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">0</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>Sem Registro</td>
+                    <td>N/A</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">LUCAS FELIPE</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">SUPERVISOR</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">0</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>Sem Registro</td>
+                    <td>N/A</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">EDSON TAVARES</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">SUPERVISOR</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">0</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>Sem Registro</td>
+                    <td>N/A</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">ERNANE PINHEIRO</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">ENG. SEGURANÇA</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">1</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">1</strong></td>
+                    <td>09/06/2026</td>
+                    <td>84 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">RONALDO COSTA</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">DIRETOR</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">1</strong></td>
+                    <td><strong style="color: #ff6d00;">0</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">1</strong></td>
+                    <td>20/06/2026</td>
+                    <td>73 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: #ffffff;">JORGE LUIS</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">SUPERVISOR</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">1</strong></td>
+                    <td><strong style="color: #ff6d00;">1</strong></td>
+                    <td><strong style="color: #00d2ff;">0</strong></td>
+                    <td><strong style="color: #d500f9;">0</strong></td>
+                    <td>25/08/2026</td>
+                    <td>7 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr></tbody>
+            </table>
+        </div>
+
+        <div id="tabIdLast" class="table-wrapper" style="display: block;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Descrição / Local / Placa</th><th>Tipo</th><th>Última Inspeção</th><th>Dias Sem Inspeção</th><th>Status Prazo</th>
+                    </tr>
+                </thead>
+                <tbody id="tableIdLastBody"><tr>
+                    <td><strong style="color: var(--accent-blue);">BCN8A84</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BELO VALE: Av. Paraopeba 144</strong></td>
+                    <td>R132</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BELO VALE: Praça Dona Trindade 09</strong></td>
+                    <td>R124</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BRUMADINHO: Rua do Ouro 64</strong></td>
+                    <td>MOTORISTAS</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>25/08/2026</td>
+                    <td>7 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BRUMADINHO: Rua Maria E. Andrade 737 /1º</strong></td>
+                    <td>R101</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BRUMADINHO: Rua Maria E. Andrade 737 /2º</strong></td>
+                    <td>R101</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BRUMADINHO: Rua Maria E. Andrade 737 /3º</strong></td>
+                    <td>R101</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BRUMADINHO: Rua Nilson S. Machado 187</strong></td>
+                    <td>R126</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>24/08/2026</td>
+                    <td>8 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">BZF9C56</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">CONSELHEIRO LAFAIETE: Rua Cassimiro Adriano 76 A</strong></td>
+                    <td>R102</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">CONSELHEIRO LAFAIETE: Rua Inconfidentes 105</strong></td>
+                    <td>R125</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">CONSELHEIRO LAFAIETE: Rua jose A Bechior 35 A</strong></td>
+                    <td>R105</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">CONSELHEIRO LAFAIETE: Rua Vivaldo P Vieira 105</strong></td>
+                    <td>MOTORISTAS</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">LMP8H25</strong></td>
+                    <td>MUNCK</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>11/08/2026</td>
+                    <td>21 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">QUU2A00</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">RFB4F19</strong></td>
+                    <td>MICRO</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">RNO3G71</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">RTS3I43</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SÃO B. SUAÇUI: Av Magalhães Pinto 473</strong></td>
+                    <td>R106</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>17/08/2026</td>
+                    <td>15 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194</strong></td>
+                    <td>R123</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>27/08/2026</td>
+                    <td>5 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SÃO B. SUAÇUI: Rua Senhor dos Passos 1342</strong></td>
+                    <td>R103</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">ALOJAMENTO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SHZ6I52</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SHZ6I55</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIA3H55</strong></td>
+                    <td>MUNCK</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>28/08/2026</td>
+                    <td>4 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIA3H81</strong></td>
+                    <td>TOCO</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>25/08/2026</td>
+                    <td>7 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIE6H69</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIG0B09</strong></td>
+                    <td>TOCO</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIG2E84</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIJ9A13</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIJ9A20</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIM1G00</strong></td>
+                    <td>MICRO</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>24/08/2026</td>
+                    <td>8 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SIS1H86</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SJH0B28</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>12/08/2026</td>
+                    <td>20 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SYE0A98</strong></td>
+                    <td>VAN</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>21/08/2026</td>
+                    <td>11 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SYI5F25</strong></td>
+                    <td>VAN</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>10/08/2026</td>
+                    <td>22 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">SYM1C59</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>31/08/2026</td>
+                    <td>1 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TDA3I81</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TDJ8H11</strong></td>
+                    <td>VAN</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>21/08/2026</td>
+                    <td>11 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TDN4B51</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TDR2C27</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TYT8C11</strong></td>
+                    <td>VAN</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>17/08/2026</td>
+                    <td>15 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TZM2F79</strong></td>
+                    <td>VERIFICAR</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">TXZ1J91</strong></td>
+                    <td>TOCO</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">VEICULO</small></td>
+                    <td>18/08/2026</td>
+                    <td>14 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R101</strong></td>
+                    <td>R101</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R102</strong></td>
+                    <td>R102</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>20/06/2026</td>
+                    <td>73 d</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R103</strong></td>
+                    <td>R103</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R105</strong></td>
+                    <td>R105</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R106</strong></td>
+                    <td>R106</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R123</strong></td>
+                    <td>R123</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R124</strong></td>
+                    <td>R124</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R125</strong></td>
+                    <td>R125</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>01/09/2026</td>
+                    <td>0 d</td>
+                    <td><span class="badge-status status-ok">OK</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R126</strong></td>
+                    <td>R126</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R127</strong></td>
+                    <td>R127</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R132</strong></td>
+                    <td>R132</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr><tr>
+                    <td><strong style="color: var(--accent-blue);">EQUIPE R177</strong></td>
+                    <td>R177</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">FRENTE DE SERVIÇO</small></td>
+                    <td>Sem Registro</td>
+                    <td>Sem Registro</td>
+                    <td><span class="badge-status status-atrasado">ATRASADO</span></td>
+                </tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let rawMapa = [{"Inspetor":"ERNANE PINHEIRO","TIPO":"FRENTE DE SERVIÇO","Data":"2026-06-09","ID":"ALOJAMENTO","DESCRICAO":"EQUIPE R103","EQUIPE":"R103"},{"Inspetor":"RONALDO COSTA","TIPO":"FRENTE DE SERVIÇO","Data":"2026-06-20","ID":"ALOJAMENTO","DESCRICAO":"EQUIPE R102","EQUIPE":"R102"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-04","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","EQUIPE":"R123"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-04","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Rua Senhor dos Passos 1342","EQUIPE":"R103"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-07","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Av. Paraopeba 144","EQUIPE":"R124"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-07","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Praça Dona Trindade 09","EQUIPE":"R124"},{"Inspetor":"GILIARD RAFAEL","TIPO":"VEICULO","Data":"2026-08-10","ID":"CAMINHÃO TOCO","DESCRICAO":"SIG0B09","EQUIPE":"R101"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-10","ID":"VAN","DESCRICAO":"SYI5F25","EQUIPE":"R126"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-10","ID":"CAMINHÃO TOCO","DESCRICAO":"TXZ1J91","EQUIPE":"R126"},{"Inspetor":"LUCAS TADEU","TIPO":"VEICULO","Data":"2026-08-11","ID":"MUNCK","DESCRICAO":"LMP8H25","EQUIPE":"R106"},{"Inspetor":"WENDELL ARAUJO","TIPO":"VEICULO","Data":"2026-08-11","ID":"CAMINHÃO TOCO","DESCRICAO":"SIA3H81","EQUIPE":"R102"},{"Inspetor":"WENDELL ARAUJO","TIPO":"VEICULO","Data":"2026-08-11","ID":"MICRO-ÔNIBUS","DESCRICAO":"SIM1G00","EQUIPE":"R102"},{"Inspetor":"LUCAS TADEU","TIPO":"VEICULO","Data":"2026-08-11","ID":"VAN","DESCRICAO":"TDJ8H11","EQUIPE":"R106"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEICULO","Data":"2026-08-12","ID":"MICRO-ÔNIBUS","DESCRICAO":"RFB4F19","EQUIPE":"R103"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEICULO","Data":"2026-08-12","ID":"CAMINHÃO TOCO","DESCRICAO":"SIA3H55","EQUIPE":"R103"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"VEICULO","Data":"2026-08-12","ID":"MUNCK","DESCRICAO":"SJH0B28","EQUIPE":"R132"},{"Inspetor":"WENDELL ARAUJO","TIPO":"ALOJAMENTO","Data":"2026-08-12","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Inconfidentes 105","EQUIPE":"R125"},{"Inspetor":"LUCAS TADEU","TIPO":"ALOJAMENTO","Data":"2026-08-12","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","EQUIPE":"R123"},{"Inspetor":"LUCAS TADEU","TIPO":"ALOJAMENTO","Data":"2026-08-12","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Rua Senhor dos Passos 1342","EQUIPE":"R125"},{"Inspetor":"GILIARD RAFAEL","TIPO":"ALOJAMENTO","Data":"2026-08-14","ID":"ALOJAMENTO","DESCRICAO":"BRUMADINHO: Rua Maria Emilia Andrade 737 - 1° andar","EQUIPE":"R101"},{"Inspetor":"GILIARD RAFAEL","TIPO":"ALOJAMENTO","Data":"2026-08-14","ID":"ALOJAMENTO","DESCRICAO":"BRUMADINHO: Rua Maria Emilia Andrade 737 - 2° andar","EQUIPE":"R101"},{"Inspetor":"GILIARD RAFAEL","TIPO":"ALOJAMENTO","Data":"2026-08-14","ID":"ALOJAMENTO","DESCRICAO":"BRUMADINHO: Rua Maria Emilia Andrade 737 - 3° andar","EQUIPE":"R101"},{"Inspetor":"WENDELL ARAUJO","TIPO":"VEICULO","Data":"2026-08-17","ID":"VAN","DESCRICAO":"TYT8C11","EQUIPE":"R105"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"ALOJAMENTO","Data":"2026-08-17","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Av. Paraopeba 144","EQUIPE":"R132"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"ALOJAMENTO","Data":"2026-08-17","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Praça Dona Trindade 09","EQUIPE":"R124"},{"Inspetor":"LUCAS TADEU","TIPO":"ALOJAMENTO","Data":"2026-08-17","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av Magalhães Pinto 473","EQUIPE":"R106"},{"Inspetor":"LUCAS TADEU","TIPO":"ALOJAMENTO","Data":"2026-08-17","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","EQUIPE":"R123"},{"Inspetor":"LUCAS TADEU","TIPO":"ALOJAMENTO","Data":"2026-08-17","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Rua Senhor dos Passos 1342","EQUIPE":"R103"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-18","ID":"CAMINHÃO TOCO","DESCRICAO":"TXZ1J91","EQUIPE":"R126"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-08-19","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Expedicionario ","EQUIPE":"R177"},{"Inspetor":"ALOISIO FREITAS","TIPO":"ALOJAMENTO","Data":"2026-08-20","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Expedicionario ","EQUIPE":"R177"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-08-21","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Cassimiro Adriano 76 A","EQUIPE":"R102"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-08-21","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Expedicionario ","EQUIPE":"R177"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-08-21","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua jose A Bechior 35 A","EQUIPE":"R105"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"VEICULO","Data":"2026-08-21","ID":"VAN","DESCRICAO":"SYE0A98","EQUIPE":"R132"},{"Inspetor":"LUCAS TADEU","TIPO":"VEICULO","Data":"2026-08-21","ID":"VAN","DESCRICAO":"TDJ8H11","EQUIPE":"R106"},{"Inspetor":"GUSTAVO CRISTIANO","TIPO":"ALOJAMENTO","Data":"2026-08-24","ID":"ALOJAMENTO","DESCRICAO":"BRUMADINHO: Rua Nilson S. Machado 187","EQUIPE":"R126"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-24","ID":"MICRO-ÔNIBUS","DESCRICAO":"SIM1G00","EQUIPE":"R102"},{"Inspetor":"JORGE LUIS","TIPO":"ALOJAMENTO","Data":"2026-08-25","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Praça Dona Trindade 09","EQUIPE":"R124"},{"Inspetor":"GUSTAVO CRISTIANO","TIPO":"ALOJAMENTO","Data":"2026-08-25","ID":"ALOJAMENTO","DESCRICAO":"BRUMADINHO: Rua do Ouro 64","EQUIPE":"MOTORISTAS"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-25","ID":"CAMINHÃO TOCO","DESCRICAO":"SIA3H81","EQUIPE":"R102"},{"Inspetor":"RAPHAEL SILVA","TIPO":"ALOJAMENTO","Data":"2026-08-26","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","EQUIPE":"R123"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-27","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Praça Dona Trindade 09","EQUIPE":"R124"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-27","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","EQUIPE":"R123"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-08-27","ID":"ALOJAMENTO","DESCRICAO":"SÃO B. SUAÇUI: Rua Senhor dos Passos 1342","EQUIPE":"R103"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"ALOJAMENTO","Data":"2026-08-28","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Av. Paraopeba 144","EQUIPE":"R132"},{"Inspetor":"LUIZ GUSTAVO","TIPO":"ALOJAMENTO","Data":"2026-08-28","ID":"ALOJAMENTO","DESCRICAO":"BELO VALE: Praça Dona Trindade 09","EQUIPE":"R124"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-08-28","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Inconfidentes 105","EQUIPE":"R125"},{"Inspetor":"WENDELL ARAUJO","TIPO":"ALOJAMENTO","Data":"2026-08-28","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua jose A Bechior 35 A","EQUIPE":"R105"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEICULO","Data":"2026-08-28","ID":"MICRO-ÔNIBUS","DESCRICAO":"RFB4F19","EQUIPE":"R103"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEICULO","Data":"2026-08-28","ID":"MUNCK","DESCRICAO":"RTS3I43","EQUIPE":"MUNCK"},{"Inspetor":"LUCAS TADEU","TIPO":"VEICULO","Data":"2026-08-28","ID":"VAN","DESCRICAO":"RUB6G04","EQUIPE":"R123"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEICULO","Data":"2026-08-28","ID":"CAMINHÃO TOCO","DESCRICAO":"SIA3H55","EQUIPE":"R103"},{"Inspetor":"LUCAS TADEU","TIPO":"VEICULO","Data":"2026-08-28","ID":"VAN","DESCRICAO":"RUB6G04","EQUIPE":"R123"},{"Inspetor":"GUSTAVO CRISTIANO","TIPO":"VEICULO","Data":"2026-08-31","ID":"CAMINHÃO TOCO","DESCRICAO":"SIG0B09","EQUIPE":"R101"},{"Inspetor":"GUSTAVO CRISTIANO","TIPO":"VEICULO","Data":"2026-08-31","ID":"MICRO-ÔNIBUS","DESCRICAO":"QUU2A00","EQUIPE":"R101"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-31","ID":"VAN","DESCRICAO":"SYM1C59","EQUIPE":"R125"},{"Inspetor":"RAPHAEL OLIVEIRA","TIPO":"VEICULO","Data":"2026-08-31","ID":"CAMINHÃO TOCO","DESCRICAO":"SIJ9A13","EQUIPE":"R125"},{"Inspetor":"JOAO PEDRO","TIPO":"VEÍCULOS","Data":"2026-09-01","ID":"VEÍCULOS","DESCRICAO":"SHZ6I52","EQUIPE":"RESERVA"},{"Inspetor":"ALOISIO FREITAS","TIPO":"FRENTE DE SERVIÇO","Data":"2026-09-01","ID":"EQUIPE R125","DESCRICAO":"R125","EQUIPE":"R125"},{"Inspetor":"JOAO PEDRO","TIPO":"VEÍCULOS","Data":"2026-09-01","ID":"VEÍCULOS","DESCRICAO":"BCN8A84","EQUIPE":"RESERVA"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Inconfidentes 105","EQUIPE":"R125"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Expedicionario ","EQUIPE":"R177"},{"Inspetor":"MELYRIK JOSE","TIPO":"FRENTE DE SERVIÇO","Data":"2026-09-01","ID":"EQUIPE R103","DESCRICAO":"R103","EQUIPE":"R103"},{"Inspetor":"MELYRIK JOSE","TIPO":"VEÍCULOS","Data":"2026-09-01","ID":"CAMINHÃO TOCO","DESCRICAO":"SIA3H55 ","EQUIPE":"R103"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Cassimiro Adriano 76 A","EQUIPE":"R102"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua jose A Bechior 35 A","EQUIPE":"R105"},{"Inspetor":"SAMUEL JOHNATAN","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Vivaldo P Vieira 105","EQUIPE":"MOTORISTAS"},{"Inspetor":"JOAO PEDRO","TIPO":"ALOJAMENTO","Data":"2026-09-01","ID":"ALOJAMENTO","DESCRICAO":"CONSELHEIRO LAFAIETE: Rua Vivaldo P Vieira 105","EQUIPE":"MOTORISTAS"}];
+        let rawInspetores = [{"INSPETOR":"RAPHAEL OLIVEIRA","FUNCAO":"TST"},{"INSPETOR":"LUCAS TADEU","FUNCAO":"TST"},{"INSPETOR":"LUIZ GUSTAVO","FUNCAO":"TST"},{"INSPETOR":"MELYRIK JOSE","FUNCAO":"TST"},{"INSPETOR":"WENDELL ARAUJO","FUNCAO":"TST"},{"INSPETOR":"GILIARD RAFAEL","FUNCAO":"TST"},{"INSPETOR":"GUSTAVO CRISTIANO","FUNCAO":"TST"},{"INSPETOR":"SAMUEL JOHNATAN","FUNCAO":"TST"},{"INSPETOR":"ALOISIO FREITAS","FUNCAO":"COORD. SEGURANÇA"},{"INSPETOR":"RAPHAEL SILVA","FUNCAO":"PREPOSTO"},{"INSPETOR":"FERNANDO WELTER","FUNCAO":"PREPOSTO"},{"INSPETOR":"LUCAS FELIPE","FUNCAO":"SUPERVISOR"},{"INSPETOR":"EDSON TAVARES","FUNCAO":"SUPERVISOR"},{"INSPETOR":"ERNANE PINHEIRO","FUNCAO":"ENG. SEGURANÇA"},{"INSPETOR":"RONALDO COSTA","FUNCAO":"DIRETOR"},{"INSPETOR":"JORGE LUIS","FUNCAO":"SUPERVISOR"}];
+        let rawIds = [{"ID":"BCN8A84","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"BELO VALE: Av. Paraopeba 144","DESCRICAO":"R132","TIPO":"ALOJAMENTO"},{"ID":"BELO VALE: Praça Dona Trindade 09","DESCRICAO":"R124","TIPO":"ALOJAMENTO"},{"ID":"BRUMADINHO: Rua do Ouro 64","DESCRICAO":"MOTORISTAS","TIPO":"ALOJAMENTO"},{"ID":"BRUMADINHO: Rua Maria E. Andrade 737 /1º","DESCRICAO":"R101","TIPO":"ALOJAMENTO"},{"ID":"BRUMADINHO: Rua Maria E. Andrade 737 /2º","DESCRICAO":"R101","TIPO":"ALOJAMENTO"},{"ID":"BRUMADINHO: Rua Maria E. Andrade 737 /3º","DESCRICAO":"R101","TIPO":"ALOJAMENTO"},{"ID":"BRUMADINHO: Rua Nilson S. Machado 187","DESCRICAO":"R126","TIPO":"ALOJAMENTO"},{"ID":"BZF9C56","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"CONSELHEIRO LAFAIETE: Rua Cassimiro Adriano 76 A","DESCRICAO":"R102","TIPO":"ALOJAMENTO"},{"ID":"CONSELHEIRO LAFAIETE: Rua Inconfidentes 105","DESCRICAO":"R125","TIPO":"ALOJAMENTO"},{"ID":"CONSELHEIRO LAFAIETE: Rua jose A Bechior 35 A","DESCRICAO":"R105","TIPO":"ALOJAMENTO"},{"ID":"CONSELHEIRO LAFAIETE: Rua Vivaldo P Vieira 105","DESCRICAO":"MOTORISTAS","TIPO":"ALOJAMENTO"},{"ID":"LMP8H25","DESCRICAO":"MUNCK","TIPO":"VEICULO"},{"ID":"QUU2A00","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"RFB4F19","DESCRICAO":"MICRO","TIPO":"VEICULO"},{"ID":"RNO3G71","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"RTS3I43","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SÃO B. SUAÇUI: Av Magalhães Pinto 473","DESCRICAO":"R106","TIPO":"ALOJAMENTO"},{"ID":"SÃO B. SUAÇUI: Av. Gov. Magalhães Pinto 194","DESCRICAO":"R123","TIPO":"ALOJAMENTO"},{"ID":"SÃO B. SUAÇUI: Rua Senhor dos Passos 1342","DESCRICAO":"R103","TIPO":"ALOJAMENTO"},{"ID":"SHZ6I52","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SHZ6I55","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SIA3H55","DESCRICAO":"MUNCK","TIPO":"VEICULO"},{"ID":"SIA3H81","DESCRICAO":"TOCO","TIPO":"VEICULO"},{"ID":"SIE6H69","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SIG0B09","DESCRICAO":"TOCO","TIPO":"VEICULO"},{"ID":"SIG2E84","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SIJ9A13","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SIJ9A20","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SIM1G00","DESCRICAO":"MICRO","TIPO":"VEICULO"},{"ID":"SIS1H86","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SJH0B28","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"SYE0A98","DESCRICAO":"VAN","TIPO":"VEICULO"},{"ID":"SYI5F25","DESCRICAO":"VAN","TIPO":"VEICULO"},{"ID":"SYM1C59","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"TDA3I81","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"TDJ8H11","DESCRICAO":"VAN","TIPO":"VEICULO"},{"ID":"TDN4B51","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"TDR2C27","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"TYT8C11","DESCRICAO":"VAN","TIPO":"VEICULO"},{"ID":"TZM2F79","DESCRICAO":"VERIFICAR","TIPO":"VEICULO"},{"ID":"TXZ1J91","DESCRICAO":"TOCO","TIPO":"VEICULO"},{"ID":"EQUIPE R101","DESCRICAO":"R101","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R102","DESCRICAO":"R102","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R103","DESCRICAO":"R103","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R105","DESCRICAO":"R105","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R106","DESCRICAO":"R106","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R123","DESCRICAO":"R123","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R124","DESCRICAO":"R124","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R125","DESCRICAO":"R125","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R126","DESCRICAO":"R126","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R127","DESCRICAO":"R127","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R132","DESCRICAO":"R132","TIPO":"FRENTE DE SERVIÇO"},{"ID":"EQUIPE R177","DESCRICAO":"R177","TIPO":"FRENTE DE SERVIÇO"}];
+
+        const PRAZOS_INSPETORES = {
+            "ALOISIO FREITAS": 15,
+            "RAPHAEL SILVA": 30,
+            "FERNANDO WELTER": 30,
+            "LUCAS FELIPE": 15,
+            "EDSON TAVARES": 15,
+            "ERNANE PINHEIRO": 60,
+            "RONALDO COSTA": 60,
+            "JORGE LUIS": 15
+        };
+
+        function formatDateBR(dateStr) {
+            if (!dateStr || dateStr === 'Sem Registro' || dateStr === 'N/A') return dateStr;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return dateStr;
+        }
+
+        function getPrazoMaximo(inspetorName) {
+            return PRAZOS_INSPETORES[inspetorName.trim().toUpperCase()] || 7;
+        }
+
+        function normalizaTipo(tipoStr) {
+            if (!tipoStr) return '';
+            let t = String(tipoStr).toUpperCase().trim();
+            if (t.includes('ALOJ')) return 'ALOJAMENTO';
+            if (t.includes('VEIC') || t.includes('VEÍC')) return 'VEICULO';
+            if (t.includes('FRENTE')) return 'FRENTE DE SERVIÇO';
+            return t;
+        }
+
+        let chartFarolTSTVeicObj = null;
+        let chartFarolTSTAlojObj = null;
+        let chartFarolTSTFrenteObj = null;
+        let chartRankingAlojObj = null;
+        let chartRankingVeicObj = null;
+        let chartRankingFrenteObj = null;
+
+        Chart.defaults.color = '#cbd5e1';
+        Chart.defaults.borderColor = '#2a374e';
+
+        function processData() {
+            let mapaFiltradoData = rawMapa.filter(m => m.Data);
+
+            let maxDate = null;
+            mapaFiltradoData.forEach(item => {
+                let d = new Date(item.Data + 'T00:00:00');
+                if (!maxDate || d > maxDate) maxDate = d;
+            });
+
+            const maxDateStr = maxDate ? formatDateBR(maxDate.toISOString().split('T')[0]) : 'N/A';
+            document.getElementById('kpiMaxDate').textContent = `Última data referência: ${maxDateStr}`;
+
+            const inspProdMap = rawInspetores.map(insp => {
+                const name = insp.INSPETOR;
+                const func = insp.FUNCAO;
+                const prazoMax = getPrazoMaximo(name);
+
+                let inspMapas = mapaFiltradoData.filter(m => m.Inspetor === name);
+
+                // FILTRA NO MAPA PELA COLUNA TPO
+                let inspMapasAloj = inspMapas.filter(m => normalizaTipo(m.TIPO) === 'ALOJAMENTO');
+                let inspMapasVeic = inspMapas.filter(m => normalizaTipo(m.TIPO) === 'VEICULO');
+                let inspMapasFrente = inspMapas.filter(m => normalizaTipo(m.TIPO) === 'FRENTE DE SERVIÇO');
+
+                let lastDate = null;
+                let lastDateAloj = null;
+                let lastDateVeic = null;
+                let lastDateFrente = null;
+
+                inspMapas.forEach(m => {
+                    let d = new Date(m.Data + 'T00:00:00');
+                    if (!lastDate || d > lastDate) lastDate = d;
+                });
+
+                inspMapasAloj.forEach(m => {
+                    let d = new Date(m.Data + 'T00:00:00');
+                    if (!lastDateAloj || d > lastDateAloj) lastDateAloj = d;
+                });
+
+                inspMapasVeic.forEach(m => {
+                    let d = new Date(m.Data + 'T00:00:00');
+                    if (!lastDateVeic || d > lastDateVeic) lastDateVeic = d;
+                });
+
+                inspMapasFrente.forEach(m => {
+                    let d = new Date(m.Data + 'T00:00:00');
+                    if (!lastDateFrente || d > lastDateFrente) lastDateFrente = d;
+                });
+
+                let statusAloj = "ATRASADO";
+                if (lastDateAloj && maxDate) {
+                    let diff = Math.floor((maxDate - lastDateAloj) / (1000 * 60 * 60 * 24));
+                    if (diff <= prazoMax) statusAloj = "OK";
+                }
+
+                let statusVeic = "ATRASADO";
+                if (lastDateVeic && maxDate) {
+                    let diff = Math.floor((maxDate - lastDateVeic) / (1000 * 60 * 60 * 24));
+                    if (diff <= prazoMax) statusVeic = "OK";
+                }
+
+                let statusFrente = "ATRASADO";
+                if (lastDateFrente && maxDate) {
+                    let diff = Math.floor((maxDate - lastDateFrente) / (1000 * 60 * 60 * 24));
+                    if (diff <= prazoMax) statusFrente = "OK";
+                }
+
+                let daysDiff = null;
+                let statusPrazo = "ATRASADO";
+
+                if (lastDate && maxDate) {
+                    daysDiff = Math.floor((maxDate - lastDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff <= prazoMax) {
+                        statusPrazo = "OK";
+                    }
+                }
+
+                return {
+                    INSPETOR: name,
+                    FUNCAO: func,
+                    PRAZO_MAX: prazoMax,
+                    TOTAL: inspMapas.length,
+                    ALOJAMENTO: inspMapasAloj.length,
+                    VEICULO: inspMapasVeic.length,
+                    FRENTE: inspMapasFrente.length,
+                    ULTIMA_DATA: lastDate ? formatDateBR(lastDate.toISOString().split('T')[0]) : 'Sem Registro',
+                    DIAS_DIFF: daysDiff,
+                    STATUS_PRAZO: statusPrazo,
+                    STATUS_ALOJ: statusAloj,
+                    STATUS_VEIC: statusVeic,
+                    STATUS_FRENTE: statusFrente
+                };
+            });
+
+            // OBTÉM O TIPO DE ITEM DIRETO DA ABA ID DO EXCEL
+            const idLastMap = rawIds.map(item => {
+                const idVal = item.ID;
+                const descVal = item.DESCRICAO;
+
+                let tipoItem = normalizaTipo(item.TIPO);
+                if (!tipoItem) {
+                    if (idVal.includes('ALOJAMENTO') || idVal.includes(':') || descVal.includes(':')) {
+                        tipoItem = 'ALOJAMENTO';
+                    } else if (idVal.startsWith('R') || descVal.startsWith('R') || idVal.includes('FRENTE') || descVal.includes('FRENTE')) {
+                        tipoItem = 'FRENTE DE SERVIÇO';
+                    } else {
+                        tipoItem = 'VEICULO';
+                    }
+                }
+
+                let matches = mapaFiltradoData.filter(m => m.ID === idVal || m.DESCRICAO === idVal || m.DESCRICAO === descVal);
+
+                let lastDate = null;
+                matches.forEach(m => {
+                    let d = new Date(m.Data + 'T00:00:00');
+                    if (!lastDate || d > lastDate) lastDate = d;
+                });
+
+                let daysDiff = null;
+                let statusId = "ATRASADO";
+
+                if (lastDate && maxDate) {
+                    daysDiff = Math.floor((maxDate - lastDate) / (1000 * 60 * 60 * 24));
+                    statusId = daysDiff <= 7 ? "OK" : "ATRASADO";
+                }
+
+                return {
+                    ID: idVal,
+                    DESCRICAO: descVal,
+                    TIPO: tipoItem,
+                    ULTIMA_INSPECAO: lastDate ? formatDateBR(lastDate.toISOString().split('T')[0]) : 'Sem Registro',
+                    DIAS_DIFF: daysDiff,
+                    STATUS: statusId
+                };
+            });
+
+            return { maxDate, inspProdMap, idLastMap, totalInspecoesPeriodo: mapaFiltradoData.length };
+        }
+
+        function updateDashboard() {
+            const { maxDate, inspProdMap, idLastMap, totalInspecoesPeriodo } = processData();
+
+            document.getElementById('kpiTotal').textContent = totalInspecoesPeriodo;
+            document.getElementById('kpiTotalInspetoresBase').textContent = rawInspetores.length;
+            
+            const tstInspetores = inspProdMap.filter(i => i.FUNCAO === 'TST');
+
+            const tstNoPrazo = tstInspetores.filter(i => i.STATUS_ALOJ === 'OK' && i.STATUS_VEIC === 'OK' && i.STATUS_FRENTE === 'OK').length;
+            const tstEmAtraso = tstInspetores.length - tstNoPrazo;
+
+            document.getElementById('kpiInspEmDia').textContent = tstNoPrazo;
+            document.getElementById('kpiInspAtrasados').textContent = tstEmAtraso;
+
+            renderAlertCards(idLastMap);
+            renderCharts(inspProdMap);
+            renderProdTable(inspProdMap);
+            renderIdLastTable(idLastMap);
+        }
+
+        function renderAlertCards(idLastMap) {
+            const alojAtrasados = idLastMap.filter(i => i.TIPO === 'ALOJAMENTO' && i.STATUS === 'ATRASADO');
+            const veicAtrasados = idLastMap.filter(i => i.TIPO === 'VEICULO' && i.STATUS === 'ATRASADO');
+            const frenteAtrasados = idLastMap.filter(i => i.TIPO === 'FRENTE DE SERVIÇO' && i.STATUS === 'ATRASADO');
+
+            document.getElementById('countAlojAtrasados').textContent = `${alojAtrasados.length} pendente(s)`;
+            document.getElementById('countVeicAtrasados').textContent = `${veicAtrasados.length} pendente(s)`;
+            document.getElementById('countFrenteAtrasados').textContent = `${frenteAtrasados.length} pendente(s)`;
+
+            const listAloj = document.getElementById('listAlojAtrasados');
+            listAloj.innerHTML = '';
+            alojAtrasados.forEach(item => {
+                const diasText = item.DIAS_DIFF !== null ? `${item.DIAS_DIFF} dias` : 'Sem reg.';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color: #ff6d00;">${item.ID}</strong></td>
+                    <td>${item.DESCRICAO}</td>
+                    <td>${item.ULTIMA_INSPECAO}</td>
+                    <td><span class="badge-status status-atrasado">${diasText}</span></td>
+                `;
+                listAloj.appendChild(tr);
+            });
+
+            const listVeic = document.getElementById('listVeicAtrasados');
+            listVeic.innerHTML = '';
+            veicAtrasados.forEach(item => {
+                const diasText = item.DIAS_DIFF !== null ? `${item.DIAS_DIFF} dias` : 'Sem reg.';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color: #00d2ff;">${item.ID}</strong></td>
+                    <td>${item.DESCRICAO}</td>
+                    <td>${item.ULTIMA_INSPECAO}</td>
+                    <td><span class="badge-status status-atrasado">${diasText}</span></td>
+                `;
+                listVeic.appendChild(tr);
+            });
+
+            const listFrente = document.getElementById('listFrenteAtrasados');
+            listFrente.innerHTML = '';
+            frenteAtrasados.forEach(item => {
+                const diasText = item.DIAS_DIFF !== null ? `${item.DIAS_DIFF} dias` : 'Sem reg.';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color: #d500f9;">${item.ID}</strong></td>
+                    <td>${item.DESCRICAO}</td>
+                    <td>${item.ULTIMA_INSPECAO}</td>
+                    <td><span class="badge-status status-atrasado">${diasText}</span></td>
+                `;
+                listFrente.appendChild(tr);
+            });
+        }
+
+        function renderCharts(inspProdMap) {
+            const tstInsp = inspProdMap.filter(i => i.FUNCAO === 'TST');
+
+            // 1. Farol Veículos
+            const tstVeicOk = tstInsp.filter(i => i.STATUS_VEIC === 'OK').length;
+            const tstVeicAtraso = tstInsp.filter(i => i.STATUS_VEIC === 'ATRASADO').length;
+
+            if (chartFarolTSTVeicObj) chartFarolTSTVeicObj.destroy();
+            chartFarolTSTVeicObj = new Chart(document.getElementById('chartFarolTSTVeic'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['🟢 OK', '🔴 Atrasado'],
+                    datasets: [{ data: [tstVeicOk, tstVeicAtraso], backgroundColor: ['#00e676', '#ff1744'], borderWidth: 2, borderColor: '#151c2c' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const listTSTVeic = document.getElementById('listFarolTSTVeic');
+            listTSTVeic.innerHTML = '';
+            tstInsp.forEach(i => {
+                const badgeVeic = i.STATUS_VEIC === 'OK' ? '<span class="badge-status status-ok">OK</span>' : '<span class="badge-status status-atrasado">ATRASADO</span>';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><strong>${i.INSPETOR}</strong></td><td>${badgeVeic}</td>`;
+                listTSTVeic.appendChild(tr);
+            });
+
+            // 2. Farol Alojamentos
+            const tstAlojOk = tstInsp.filter(i => i.STATUS_ALOJ === 'OK').length;
+            const tstAlojAtraso = tstInsp.filter(i => i.STATUS_ALOJ === 'ATRASADO').length;
+
+            if (chartFarolTSTAlojObj) chartFarolTSTAlojObj.destroy();
+            chartFarolTSTAlojObj = new Chart(document.getElementById('chartFarolTSTAloj'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['🟢 OK', '🔴 Atrasado'],
+                    datasets: [{ data: [tstAlojOk, tstAlojAtraso], backgroundColor: ['#00e676', '#ff1744'], borderWidth: 2, borderColor: '#151c2c' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const listTSTAloj = document.getElementById('listFarolTSTAloj');
+            listTSTAloj.innerHTML = '';
+            tstInsp.forEach(i => {
+                const badgeAloj = i.STATUS_ALOJ === 'OK' ? '<span class="badge-status status-ok">OK</span>' : '<span class="badge-status status-atrasado">ATRASADO</span>';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><strong>${i.INSPETOR}</strong></td><td>${badgeAloj}</td>`;
+                listTSTAloj.appendChild(tr);
+            });
+
+            // 3. Farol Frentes de Serviço
+            const tstFrenteOk = tstInsp.filter(i => i.STATUS_FRENTE === 'OK').length;
+            const tstFrenteAtraso = tstInsp.filter(i => i.STATUS_FRENTE === 'ATRASADO').length;
+
+            if (chartFarolTSTFrenteObj) chartFarolTSTFrenteObj.destroy();
+            chartFarolTSTFrenteObj = new Chart(document.getElementById('chartFarolTSTFrente'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['🟢 OK', '🔴 Atrasado'],
+                    datasets: [{ data: [tstFrenteOk, tstFrenteAtraso], backgroundColor: ['#00e676', '#ff1744'], borderWidth: 2, borderColor: '#151c2c' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const listTSTFrente = document.getElementById('listFarolTSTFrente');
+            listTSTFrente.innerHTML = '';
+            tstInsp.forEach(i => {
+                const badgeFrente = i.STATUS_FRENTE === 'OK' ? '<span class="badge-status status-ok">OK</span>' : '<span class="badge-status status-atrasado">ATRASADO</span>';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><strong>${i.INSPETOR}</strong></td><td>${badgeFrente}</td>`;
+                listTSTFrente.appendChild(tr);
+            });
+
+            // Farol Liderança
+            const lidInsp = inspProdMap.filter(i => i.FUNCAO !== 'TST');
+            const listLid = document.getElementById('listFarolLid');
+            listLid.innerHTML = '';
+            lidInsp.forEach(i => {
+                const badge = i.STATUS_PRAZO === 'OK' ? '<span class="badge-status status-ok">OK</span>' : '<span class="badge-status status-atrasado">ATRASADO</span>';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${i.INSPETOR}</strong> <br><small style="color:var(--accent-blue);">${i.FUNCAO}</small></td>
+                    <td>${i.PRAZO_MAX}d</td>
+                    <td>${i.ULTIMA_DATA}</td>
+                    <td>${badge}</td>
+                `;
+                listLid.appendChild(tr);
+            });
+
+            // RANKINGS
+            const rankedAloj = [...tstInsp].sort((a,b) => b.ALOJAMENTO - a.ALOJAMENTO).slice(0, 8);
+            if (chartRankingAlojObj) chartRankingAlojObj.destroy();
+            chartRankingAlojObj = new Chart(document.getElementById('chartRankingAloj'), {
+                type: 'bar',
+                data: {
+                    labels: rankedAloj.map(i => i.INSPETOR),
+                    datasets: [{ label: '🏠 Alojamentos', data: rankedAloj.map(i => i.ALOJAMENTO), backgroundColor: '#ff6d00', borderColor: '#ffd600', borderWidth: 1.5 }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#2a374e' } }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            });
+
+            const rankedVeic = [...tstInsp].sort((a,b) => b.VEICULO - a.VEICULO).slice(0, 8);
+            if (chartRankingVeicObj) chartRankingVeicObj.destroy();
+            chartRankingVeicObj = new Chart(document.getElementById('chartRankingVeic'), {
+                type: 'bar',
+                data: {
+                    labels: rankedVeic.map(i => i.INSPETOR),
+                    datasets: [{ label: '🚗 Veículos', data: rankedVeic.map(i => i.VEICULO), backgroundColor: '#00d2ff', borderColor: '#80d8ff', borderWidth: 1.5 }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#2a374e' } }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            });
+
+            const rankedFrente = [...tstInsp].sort((a,b) => b.FRENTE - a.FRENTE).slice(0, 8);
+            if (chartRankingFrenteObj) chartRankingFrenteObj.destroy();
+            chartRankingFrenteObj = new Chart(document.getElementById('chartRankingFrente'), {
+                type: 'bar',
+                data: {
+                    labels: rankedFrente.map(i => i.INSPETOR),
+                    datasets: [{ label: '🚧 Frentes de Serviço', data: rankedFrente.map(i => i.FRENTE), backgroundColor: '#d500f9', borderColor: '#ea80fc', borderWidth: 1.5 }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#2a374e' } }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderProdTable(inspProdMap) {
+            const tbody = document.getElementById('tableProdBody');
+            tbody.innerHTML = '';
+            inspProdMap.forEach(row => {
+                const badgeClass = row.STATUS_PRAZO === 'OK' ? 'status-ok' : 'status-atrasado';
+                const statusLabel = row.STATUS_PRAZO === 'OK' ? 'OK' : 'ATRASADO';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color: #ffffff;">${row.INSPETOR}</strong></td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">${row.FUNCAO}</td>
+                    <td><strong style="color: var(--accent-green); font-size: 14px;">${row.TOTAL}</strong></td>
+                    <td><strong style="color: #ff6d00;">${row.ALOJAMENTO}</strong></td>
+                    <td><strong style="color: #00d2ff;">${row.VEICULO}</strong></td>
+                    <td><strong style="color: #d500f9;">${row.FRENTE}</strong></td>
+                    <td>${row.ULTIMA_DATA}</td>
+                    <td>${row.DIAS_DIFF !== null ? row.DIAS_DIFF + ' d' : 'N/A'}</td>
+                    <td><span class="badge-status ${badgeClass}">${statusLabel}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderIdLastTable(idLastMap) {
+            const tbody = document.getElementById('tableIdLastBody');
+            tbody.innerHTML = '';
+            idLastMap.forEach(row => {
+                const badgeClass = row.STATUS === 'OK' ? 'status-ok' : 'status-atrasado';
+                const statusLabel = row.STATUS === 'OK' ? 'OK' : 'ATRASADO';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color: var(--accent-blue);">${row.ID}</strong></td>
+                    <td>${row.DESCRICAO}</td>
+                    <td><small style="color: var(--text-muted); font-weight:700;">${row.TIPO}</small></td>
+                    <td>${row.ULTIMA_INSPECAO}</td>
+                    <td>${row.DIAS_DIFF !== null ? row.DIAS_DIFF + ' d' : 'Sem Registro'}</td>
+                    <td><span class="badge-status ${badgeClass}">${statusLabel}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function switchTab(e, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tabProd').style.display = 'none';
+            document.getElementById('tabIdLast').style.display = 'none';
+            document.getElementById(tabId).style.display = 'block';
+            e.target.classList.add('active');
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                if (workbook.SheetNames.includes('MAPA INSPECOES')) {
+                    rawMapa = XLSX.utils.sheet_to_json(workbook.Sheets['MAPA INSPECOES']);
+                    rawMapa.forEach(d => {
+                        if (d.Data) {
+                            if (typeof d.Data === 'number') {
+                                d.Data = new Date(Math.round((d.Data - 25569)*86400*1000)).toISOString().split('T')[0];
+                            } else {
+                                d.Data = new Date(d.Data).toISOString().split('T')[0];
+                            }
+                        }
+                    });
+                }
+                if (workbook.SheetNames.includes('INSPETORES')) {
+                    rawInspetores = XLSX.utils.sheet_to_json(workbook.Sheets['INSPETORES']);
+                }
+                if (workbook.SheetNames.includes('ID')) {
+                    rawIds = XLSX.utils.sheet_to_json(workbook.Sheets['ID']);
+                }
+
+                updateDashboard();
+                alert('Planilha importada com sucesso! Clique em "💾 Salvar e Baixar Nova Versão HTML" para salvar esta versão.');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function saveCurrentStateHTML() {
+            let htmlDoc = document.documentElement.outerHTML;
+
+            const mapaJson = JSON.stringify(rawMapa);
+            const inspJson = JSON.stringify(rawInspetores);
+            const idsJson = JSON.stringify(rawIds);
+
+            htmlDoc = htmlDoc.replace(/let rawMapa = \[.*?\];/s, `let rawMapa = ${mapaJson};`);
+            htmlDoc = htmlDoc.replace(/let rawInspetores = \[.*?\];/s, `let rawInspetores = ${inspJson};`);
+            htmlDoc = htmlDoc.replace(/let rawIds = \[.*?\];/s, `let rawIds = ${idsJson};`);
+
+            const blob = new Blob(["<!DOCTYPE html>\n" + htmlDoc], { type: "text/html;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "painel_inspecoes_mrs20_v18.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        window.onload = function() {
+            updateDashboard();
+        };
+    </script>
+
+</body></html>
